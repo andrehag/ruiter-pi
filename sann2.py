@@ -142,17 +142,21 @@ Stasjon = 0
 
 Lastrun = 0 
 while True:
-  t_now = datetime.datetime.now()
-  d_ts = time.mktime(t_now.timetuple())
-  if int(d_ts - Lastrun) > 20:
-    Lastrun = d_ts
-    GetInfo(Stasjoner[Stasjon][0],Stasjoner[Stasjon][1],Stasjoner[Stasjon][2])
-  if LCD == 1:
-     for b in btn:
-       if lcd.buttonPressed(b[0]):
-         Stasjon = (Stasjon + b[1]) % len(Stasjoner)
-         if Stasjon < 0:
-           Stasjon = len(Stasjoner)
-         GetInfo(Stasjoner[Stasjon][0],Stasjoner[Stasjon][1],Stasjoner[Stasjon][2])
+  try
+	  t_now = datetime.datetime.now()
+	  d_ts = time.mktime(t_now.timetuple())
+	  if int(d_ts - Lastrun) > 20:
+		Lastrun = d_ts
+		GetInfo(Stasjoner[Stasjon][0],Stasjoner[Stasjon][1],Stasjoner[Stasjon][2])
+	  if LCD == 1:
+		 for b in btn:
+		   if lcd.buttonPressed(b[0]):
+			 Stasjon = (Stasjon + b[1]) % len(Stasjoner)
+			 if Stasjon < 0:
+			   Stasjon = len(Stasjoner)
+			 GetInfo(Stasjoner[Stasjon][0],Stasjoner[Stasjon][1],Stasjoner[Stasjon][2])
+  except
+    print ("error: " + sys.exc_info()[0])
+	sleep(60)
 
             
