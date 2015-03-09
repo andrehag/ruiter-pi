@@ -142,7 +142,7 @@ Stasjon = 0
 
 Lastrun = 0 
 while True:
-  try
+  try:
 	  t_now = datetime.datetime.now()
 	  d_ts = time.mktime(t_now.timetuple())
 	  if int(d_ts - Lastrun) > 20:
@@ -155,7 +155,7 @@ while True:
 			 if Stasjon < 0:
 			   Stasjon = len(Stasjoner)
 			 GetInfo(Stasjoner[Stasjon][0],Stasjoner[Stasjon][1],Stasjoner[Stasjon][2])
-  except
+  except:
     print ("error: " + sys.exc_info()[0])
 	sleep(60)
 
