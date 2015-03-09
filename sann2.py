@@ -22,7 +22,7 @@ def GetInfo(StationID, Direction, StationName):
   def MakeLine(Index, aStationName):
     destinasjon = data[Index]["MonitoredVehicleJourney"]["DestinationName"]
     #Todo: Sjekk om dette er riktig felt. Vi ma skille paa sanntid og rutetid
-    ankomst = data[Index]["MonitoredVehicleJourney"]["MonitoredCall"]["AimedArrivalTime"]
+    ankomst = data[Index]["MonitoredVehicleJourney"]["MonitoredCall"]["ExpectedDepartureTime"]
 
     #Her gjoer vi om ankomsttiden fra tekst til et tidsobjekt
     t_ankomst = datetime.datetime.strptime(ankomst[:19], "%Y-%m-%dT%H:%M:%S")
