@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import sys
 import time, datetime
 import requests, json, math
 #Todo: Konvertere lcd koden til python 3.0 og finne en maate for PI'en aa skjonne UTF-8
@@ -11,6 +12,7 @@ else:
 from time import sleep
 if LCD == 1:
   from Adafruit_CharLCDPlate import Adafruit_CharLCDPlate
+  import Adafruit_CharLCD as LCD
 
 
 # Initialize the LCD plate.  Should auto-detect correct I2C bus.  If not,
@@ -154,6 +156,6 @@ while True:
     if LCD == 1:
       lcd.message("error:\n" + sys.exc_info()[0])
     print ("error: " + sys.exc_info()[0])
-	sleep(60)
+    sleep(60)
 
             
