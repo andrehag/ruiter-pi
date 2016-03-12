@@ -2,9 +2,7 @@
 import sys
 import time, datetime
 import requests, json, math
-#Todo: Konvertere lcd koden til python 3.0 og finne en maate for PI'en aa skjonne UTF-8
-#Superhacky losning for a programmere i python 3.0 uten LCD bibloteket
-LCD = 0
+LCD = 1
 if LCD == 0:
   import urllib.request
 else:
@@ -12,7 +10,6 @@ else:
 from time import sleep
 if LCD == 1:
   from Adafruit_CharLCDPlate import Adafruit_CharLCDPlate
-  import Adafruit_CharLCD as LCD
 
 
 # Initialize the LCD plate.  Should auto-detect correct I2C bus.  If not,
@@ -45,9 +42,8 @@ def MakeLine(aTime, aStationName):
 	  Line = ""
 
 	return Line
-	
-def GetInfo(StationID, Direction, StationName):
-  def GetTime(Index):
+    
+def GetTime(Index):
     destinasjon = data[Index]["MonitoredVehicleJourney"]["DestinationName"]
     #Todo: Sjekk om dette er riktig felt. Vi ma skille paa sanntid og rutetid
     ankomst = data[Index]["MonitoredVehicleJourney"]["MonitoredCall"]["ExpectedDepartureTime"]
@@ -61,11 +57,10 @@ def GetInfo(StationID, Direction, StationName):
      
     #Saa gjoer vi om disse tidsobjektene til et standardformat
     return time.mktime(t_ankomst.timetuple())
-
- 
+	
+def GetInfo(StationID): 
   #Holdeplass nr 3012020 er Vollebekk
   ruterapi_url = "http://reisapi.ruter.no/StopVisit/GetDepartures/" + str(StationID)
-   
    #Her henter vi sanntidsdata for holdeplassen
   if LCD == 0:
     response = urllib.request.urlopen(ruterapi_url)
@@ -75,7 +70,9 @@ def GetInfo(StationID, Direction, StationName):
     response = urllib.urlopen(ruterapi_url)
     content = response.read()
     data = json.loads(content)
-  
+  return data
+
+def WriteInfo(data, Direction, StationName, Counter):    
   i = 0
   linje1 = ""
   linje2 = ""
@@ -88,12 +85,14 @@ def GetInfo(StationID, Direction, StationName):
     if (not (direct is None)) and (int(direct) == Direction):
       if linje1 == "":
         linje1 = MakeLine(GetTime(i), StationName)
+        linje1 = linje1 + str(Counter)
       else:
         if ("Extensions" in data[i]) and ("Deviations" in data[i]["Extensions"]) and ("Deviation" in data[i]["Extensions"]["Deviations"]):
           tekst = data[i]["Extensions"]["Deviations"]["Deviation"]
           linje2 = str(tekst)
         else:
           linje2 = MakeLine(GetTime(i), StationName)
+          linje2 = linje2 + str(Counter)
     i = i + 1
         
    
@@ -137,25 +136,31 @@ Stasjoner = ((3012020, 2, "0steras"),
 	     (3012020, 1, "Vestli"))
 Stasjon = 0
 
-Lastrun = 0 
+LastReq = 0
+LastWrite = 0 
+Counter = 0
 while True:
   try:
 	  t_now = datetime.datetime.now()
-	  d_ts = time.mktime(t_now.timetuple())
-	  if int(d_ts - Lastrun) > 20:
-		Lastrun = d_ts
-		GetInfo(Stasjoner[Stasjon][0],Stasjoner[Stasjon][1],Stasjoner[Stasjon][2])
-	  if LCD == 1:
+      d_ts = time.mktime(t_now.timetuple())
+      if int(d_ts - LastReq) > 60:
+        LastReq = d_ts
+        print ("Refreshing data from server")
+        data = GetInfo(Stasjoner[Stasjon][0])
+        print ("Got data from server")
+      if not(data is None) and (int(d_ts - LastWrite) > 1):
+        Counter = (Counter + 1) % 5; #Just to see a visual update
+        WriteInfo(data,Stasjoner[Stasjon][1],Stasjoner[Stasjon][2], Counter)
+        LastWrite = d_ts
+      if LCD == 1:
 		 for b in btn:
 		   if lcd.buttonPressed(b[0]):
 			 Stasjon = (Stasjon + b[1]) % len(Stasjoner)
 			 if Stasjon < 0:
 			   Stasjon = len(Stasjoner)
 			 GetInfo(Stasjoner[Stasjon][0],Stasjoner[Stasjon][1],Stasjoner[Stasjon][2])
-  except:
+  except Exception,e:
     if LCD == 1:
-      lcd.message("error:\n" + sys.exc_info()[0])
-    print ("error: " + sys.exc_info()[0])
+      lcd.message("error:\n" + str(e))
+    print ("error: " + str(e))
     sleep(60)
-
-            
