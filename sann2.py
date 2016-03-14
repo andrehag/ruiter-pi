@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
 #!/usr/bin/python
 import sys
 import time, datetime
 import requests, json, math
+import unicodedata
 LCD = 1
 if LCD == 0:
   import urllib.request
@@ -17,7 +19,10 @@ if LCD == 1:
 if LCD == 1:
   lcd = Adafruit_CharLCDPlate()
 
-    
+#Fungerer ikke for Ø, men close enough
+def ReplaceNonAscii(OriginalString):
+    return unicodedata.normalize('NFKD', OriginalString).encode('ascii', 'ignore')
+  
 def MakeLine(aTime, aStationName):
 	d2_ts = time.mktime(t_now.timetuple())	 
 	#Naa kan finne ut hvor mange sekunder det er igjen
@@ -44,13 +49,13 @@ def MakeLine(aTime, aStationName):
 	return Line
     
 def GetTime(Index):
-    destinasjon = data[Index]["MonitoredVehicleJourney"]["DestinationName"]
+    #destinasjon = data[Index]["MonitoredVehicleJourney"]["DestinationName"]
     #Todo: Sjekk om dette er riktig felt. Vi ma skille paa sanntid og rutetid
     ankomst = data[Index]["MonitoredVehicleJourney"]["MonitoredCall"]["ExpectedDepartureTime"]
 
     #Her gjoer vi om ankomsttiden fra tekst til et tidsobjekt
     t_ankomst = datetime.datetime.strptime(ankomst[:19], "%Y-%m-%dT%H:%M:%S")
-    print( str(t_ankomst))
+    #print( str(t_ankomst))
      
     #Her henter vi tiden akkurat naa
     t_now = datetime.datetime.now()
@@ -72,7 +77,7 @@ def GetInfo(StationID):
     data = json.loads(content)
   return data
 
-def WriteInfo(data, Direction, StationName, Counter):    
+def WriteInfo(data, Direction, Counter):    
   i = 0
   linje1 = ""
   linje2 = ""
@@ -81,30 +86,33 @@ def WriteInfo(data, Direction, StationName, Counter):
   while (i < len(data)) and (linje2 == ""):
 #    print(str(i))
     direct = data[i]["MonitoredVehicleJourney"]["DirectionName"]
-#    print (direct)
+    directName = data[i]["MonitoredVehicleJourney"]["DestinationName"]
+    directName = ReplaceNonAscii(directName)
     if (not (direct is None)) and (int(direct) == Direction):
       if linje1 == "":
-        linje1 = MakeLine(GetTime(i), StationName)
-        linje1 = linje1 + str(Counter)
+        linje1 = MakeLine(GetTime(i), directName)
       else:
         if ("Extensions" in data[i]) and ("Deviations" in data[i]["Extensions"]) and ("Deviation" in data[i]["Extensions"]["Deviations"]):
           tekst = data[i]["Extensions"]["Deviations"]["Deviation"]
           linje2 = str(tekst)
         else:
-          linje2 = MakeLine(GetTime(i), StationName)
-          linje2 = linje2 + str(Counter)
+          linje2 = MakeLine(GetTime(i), directName)
     i = i + 1
         
    
-  #Her skriver vi ut resultatet paa PC-skjermen
-  print ("")
-  print (linje1)
-  print (linje2)
-  print ("")
+  #Kommenter ut for aa skrive ut resultatet paa PC-skjermen
+  #print ("")
+  #print (linje1)
+  #print (linje2)
+ # print ("")
   if LCD == 1:
     lcd.clear()
   melding = linje1 + "\n" + linje2
   melding = melding.encode('ascii', 'ignore')
+  if Counter == 1:
+    melding = melding + "/"
+  else:
+    melding = melding + "|"
   if LCD == 1:
     lcd.message(melding)
 
@@ -141,7 +149,7 @@ LastWrite = 0
 Counter = 0
 while True:
   try:
-	  t_now = datetime.datetime.now()
+      t_now = datetime.datetime.now()
       d_ts = time.mktime(t_now.timetuple())
       if int(d_ts - LastReq) > 60:
         LastReq = d_ts
@@ -149,8 +157,8 @@ while True:
         data = GetInfo(Stasjoner[Stasjon][0])
         print ("Got data from server")
       if not(data is None) and (int(d_ts - LastWrite) > 1):
-        Counter = (Counter + 1) % 5; #Just to see a visual update
-        WriteInfo(data,Stasjoner[Stasjon][1],Stasjoner[Stasjon][2], Counter)
+        Counter = (Counter + 1) % 2; #Just to see a visual update
+        WriteInfo(data,Stasjoner[Stasjon][1], Counter)
         LastWrite = d_ts
       if LCD == 1:
 		 for b in btn:
@@ -158,7 +166,7 @@ while True:
 			 Stasjon = (Stasjon + b[1]) % len(Stasjoner)
 			 if Stasjon < 0:
 			   Stasjon = len(Stasjoner)
-			 GetInfo(Stasjoner[Stasjon][0],Stasjoner[Stasjon][1],Stasjoner[Stasjon][2])
+			 LastReq = 0
   except Exception,e:
     if LCD == 1:
       lcd.message("error:\n" + str(e))
